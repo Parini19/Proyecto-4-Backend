@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "documentationRules": {
+      "companyName": "Cinema Project",
+      "documentInterfaces": true,
+      "documentInternalElements": false,
+      "documentPrivateElements": false
+    },
+    "orderingRules": {
+      "usingDirectivesPlacement": "outsideNamespace"
+    },
+    "namingRules": {
+      "includeInferredTupleElementNames": true
+    }
+  }
+}

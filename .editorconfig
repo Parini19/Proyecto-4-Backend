@@ -1,0 +1,55 @@
+root = true
+
+# ===== Aplica a todos los .cs =====
+[*.cs]
+
+#######################################
+# Reglas básicas para inicio del backend
+#######################################
+
+# No exigir documentación XML (SA1600, SA1602, SA1633, etc.)
+dotnet_diagnostic.SA1600.severity = none
+dotnet_diagnostic.SA1601.severity = none
+dotnet_diagnostic.SA1602.severity = none
+dotnet_diagnostic.SA1633.severity = none
+
+# Usings deben ir fuera del namespace (SA1200)
+dotnet_diagnostic.SA1200.severity = warning
+
+# Prefijar campos privados con "this." (SA1101)
+dotnet_diagnostic.SA1101.severity = warning
+
+# Espacios alrededor de palabras clave (SA1000, SA1001)
+dotnet_diagnostic.SA1000.severity = warning
+dotnet_diagnostic.SA1001.severity = warning
+
+# Nombres de variables, clases y métodos deben empezar con mayúscula (SA1300, SA1307)
+dotnet_diagnostic.SA1300.severity = warning
+dotnet_diagnostic.SA1307.severity = warning
+
+# Llaves en líneas separadas (SA1500, SA1502)
+dotnet_diagnostic.SA1500.severity = warning
+dotnet_diagnostic.SA1502.severity = warning
+
+
+#######################################
+# Reglas para futuro (cuando ya esté estable)
+# Solo quita el "#" y serán activas
+#######################################
+
+# Exigir documentación pública en clases/métodos
+# dotnet_diagnostic.SA1600.severity = warning
+
+# Exigir encabezado de copyright en archivos
+# dotnet_diagnostic.SA1633.severity = warning
+
+# Orden estricto de elementos (campos, constructores, métodos, etc.)
+# dotnet_diagnostic.SA1201.severity = warning
+# dotnet_diagnostic.SA1202.severity = warning
+
+# Usar siempre "this." en campos y propiedades (convertir a error)
+# dotnet_diagnostic.SA1101.severity = error
+
+# Líneas en blanco obligatorias entre miembros
+# dotnet_diagnostic.SA1507.severity = warning
+# dotnet_diagnostic.SA1508.severity = warning
