@@ -50,3 +50,21 @@ implementada.
 
 -Se integra correctamente en el entorno de staging o pruebas sin errores 
 críticos. 
+
+
+# Guía de uso de StyleCop en proyectos .NET
+¿Qué es StyleCop?
+StyleCop es una herramienta de análisis estático de código que verifica que el código C# cumpla con las convenciones de estilo establecidas. StyleCop.Analyzers es la versión moderna que se integra con el compilador Roslyn y funciona con .NET Core/.NET 5+.
+Instalación
+
+INstalacion mediante NuGet Package Manager
+Clic derecho en tu proyecto en Visual Studio
+Selecciona "Manage NuGet Packages"
+Busca StyleCop.Analyzers
+Instala el paquete
+
+-1. Crear archivo stylecop.json
+Crea un archivo stylecop.json en la raíz con la configuración básica:
+
+-2. Incluir stylecop.json en el proyecto
+Añadir la configuracion al archivo .csproj del proyecto
