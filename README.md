@@ -26,3 +26,19 @@ Construir el proyecto:
 
 Ejecutar pruebas
 -`dotnet test --configuration Release`
+
+
+# Definition of done
+●Las siguinetes clauseas son las condiciondes de DoD en el proyecto
+●La funcionalidad del código se determina en condición binaria 
+● El código está desarrollado, compilado y sin errores de compilación o linting 
+● El código ha sido revisado y aprobado en un Pull Request por al menos un 
+miembro del equipo. 
+● Se han pasado satisfactoriamente todas las pruebas unitarias y de 
+integración asociadas. 
+● Se han realizado pruebas funcionales mínimas para validar la funcionalidad 
+implementada. 
+● No existen conflictos con la rama base tras la integración del código. 
+● El código ha sido revisado en aspectos de seguridad y rendimiento básicos. 
+● Se integra correctamente en el entorno de staging o pruebas sin errores 
+críticos. 
