@@ -1,3 +1,91 @@
+# 🎬 Proyecto 4 - Backend (ASP.NET Core Clean Architecture)
+
+Este es el backend del sistema **Cinema**, desarrollado con **ASP.NET Core 9.0** siguiendo el patrón **Clean Architecture**.  
+Incluye autenticación (JWT/Firebase), logging con Serilog y está preparado para conectarse con el frontend en Flutter.
+
+---
+
+## 🚀 Requisitos
+
+- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)  
+- Visual Studio 2022 / VS Code  
+- Git  
+
+---
+
+## 🛠 Configuración inicial
+
+1. Clonar el repositorio:
+
+   ```bash
+   git clone https://github.com/Parini19/Proyecto-4-Backend.git
+   cd Proyecto-4-Backend
+   ```
+
+2. Restaurar dependencias:
+
+   ```bash
+   dotnet restore
+   ```
+
+3. Compilar el proyecto:
+
+   ```bash
+   dotnet build
+   ```
+
+---
+
+## ▶ Ejecutar el proyecto
+
+Ejecuta el API:
+
+```bash
+dotnet run --project src/Cinema.Api
+```
+
+Esto levantará el servidor en:
+
+```
+https://localhost:7238
+http://localhost:5184
+```
+
+Puedes probar la API en:
+
+- **Swagger**: [https://localhost:7238/swagger](https://localhost:7238/swagger)  
+- **Health Check**: [https://localhost:7238/health](https://localhost:7238/health)  
+
+---
+
+## 📦 Estructura del proyecto
+
+```
+Proyecto-4-Backend/
+ ├─ src/
+ │   ├─ Cinema.Api/             # Capa de presentación (Web API)
+ │   ├─ Cinema.Application/     # Casos de uso / lógica de aplicación
+ │   ├─ Cinema.Domain/          # Entidades y reglas de negocio
+ │   └─ Cinema.Infrastructure/  # Conexiones externas (BD, Firebase, etc.)
+ └─ tests/                      # (Futuro) proyectos de pruebas unitarias
+```
+
+---
+
+## 🔗 Integración con Frontend
+
+El frontend espera consumir la API desde:
+
+```
+https://localhost:7238
+```
+
+Asegúrate de que el backend esté corriendo antes de iniciar el proyecto Flutter.  
+En caso de cambiar el puerto, ajusta el valor de `API_BASE_URL` en el frontend.
+
+---
+
+
 # Proyecto-4-Backend
 
 Justificación de arquitectura
