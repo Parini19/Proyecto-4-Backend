@@ -1,30 +1,32 @@
-name: .NET PIPELINE
+name: .NET CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
-  build-test-lint:
+  build-test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '7.0.x'
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          cache: true
 
-    - name: Install dotnet format
-      run: dotnet tool install -g dotnet-format
+      - name: Restore
+        run: dotnet restore Cinema.sln
 
-    - name: Run dotnet format (linter)
-      run: dotnet format --check
+      - name: Build (Release)
+        run: dotnet build Cinema.sln --configuration Release --no-restore
 
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Build project
-      run: dotnet build --no-restore --configuration Release
-
-    - name: Run tests
-      run: dotnet test --no-build --no-restore --configuration Release --verbosity normal
+      - name: Test
+        run: dotnet test Cinema.sln --configuration Release --no-build --verbosity normal
