@@ -1,4 +1,8 @@
+using System;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using Cinema.Api.Services;
 using Cinema.Domain.Entities;
@@ -7,6 +11,7 @@ using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Cinema.Api.Controllers
 {
@@ -20,7 +25,7 @@ namespace Cinema.Api.Controllers
         public FirebaseTestController(IConfiguration configuration)
         {
             _firebaseConfigPath = configuration["Firebase:ConfigPath"];
-            _userService = new UserService(configuration["Firebase:ConfigPath"]);
+            _userService = new UserService(configuration);
         }
 
         private void EnsureFirebaseInitialized()
@@ -49,18 +54,11 @@ namespace Cinema.Api.Controllers
         }
 
         [HttpPost("add-user")]
-        public async Task<IActionResult> AddUser()
+        public async Task<IActionResult> AddUser([FromBody] User user)
         {
             try
             {
-                var user = new User
-                {
-                    Email = "testuser@example.com",
-                    DisplayName = "Test User",
-                    EmailVerified = false,
-                    Disabled = false
-                };
-                var createdUser = await _userService.CreateUserAsync(user, "TestPassword123!");
+                var createdUser = await _userService.CreateUserAsync(user, user.Password);
                 return Ok(new { success = true, uid = createdUser.Uid });
             }
             catch (System.Exception ex)
@@ -148,6 +146,63 @@ namespace Cinema.Api.Controllers
             {
                 return StatusCode(500, new { success = false, message = "Failed to get users.", error = ex.Message });
             }
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+        {
+            try
+            {
+                var firebaseToken = await _userService.VerifyUserPasswordAsync(loginDto.Email, loginDto.Password);
+                if (firebaseToken == null)
+                    return Unauthorized(new { success = false, message = "Invalid credentials." });
+
+                var user = await _userService.GetUserByEmailAsync(loginDto.Email);
+                if (user == null)
+                    return Unauthorized(new { success = false, message = "User not found." });
+
+                var jwtToken = GenerateJwtToken(user, HttpContext.RequestServices.GetService<IConfiguration>());
+
+                return Ok(new
+                {
+                    success = true,
+                    uid = user.Uid,
+                    email = user.Email,
+                    displayName = user.DisplayName,
+                    role = user.Role,
+                    firebaseToken,
+                    jwtToken
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Login failed.", error = ex.Message });
+            }
+        }
+
+        private string GenerateJwtToken(User user, IConfiguration configuration)
+        {
+            var jwtSettings = configuration.GetSection("Jwt");
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Uid),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "user"),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpiresMinutes"])),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
