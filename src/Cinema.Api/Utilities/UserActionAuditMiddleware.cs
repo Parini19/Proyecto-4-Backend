@@ -18,15 +18,16 @@ public class UserActionAuditMiddleware
         var method = context.Request.Method;
         var ip = context.Connection.RemoteIpAddress?.ToString();
 
-        Log.Information("AUDIT {Method} {Path} by {UserId} from {IP}", method, path, userId, ip);
-
         try
         {
             await _next(context);
+            var statusCode = context.Response.StatusCode;
+            Log.Information("AUDIT {Method} {Path} {StatusCode} by {UserId} from {IP}", method, path, statusCode, userId, ip);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Unhandled exception for {Method} {Path} by {UserId}", method, path, userId);
+            var statusCode = context.Response.StatusCode;
+            Log.Error(ex, "Unhandled exception for {Method} {Path} {StatusCode} by {UserId}", method, path, statusCode, userId);
             throw;
         }
     }

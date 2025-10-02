@@ -15,7 +15,7 @@ namespace Cinema.Infrastructure.Repositories
 
         public FirebaseUserRepository()
         {
-            // You may want to inject config path via DI; for now, use a default or environment variable
+            
             _firebaseConfigPath = Environment.GetEnvironmentVariable("FIREBASE_CONFIG_PATH") ?? "firebase.json";
             EnsureFirebaseInitialized();
         }

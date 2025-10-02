@@ -9,3 +9,4 @@ logs/
 *.dbmdl
 *.log
 src/Cinema.Api/Config/magiacinema-adminsdk.json
+src/Cinema.Api/appsettings.Development.json
