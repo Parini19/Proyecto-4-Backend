@@ -80,8 +80,7 @@ namespace Cinema.Api.Services
             var record = await FirebaseAuth.DefaultInstance.CreateUserAsync(args);
 
             user.Uid = record.Uid;
-            // Asigna un rol por defecto (puedes cambiar esta lógica)
-            UserRoles[user.Uid] = "user";
+            UserRoles[user.Uid] = string.IsNullOrEmpty(user.Role) ? "user" : user.Role;
             return user;
         }
 

@@ -9,6 +9,7 @@ using Cinema.Domain.Entities;
 using FirebaseAdmin;
 using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -139,6 +140,7 @@ namespace Cinema.Api.Controllers
                         u.DisplayName,
                         u.EmailVerified,
                         u.Disabled,
+                        u.Role
                     }),
                 });
             }
@@ -203,6 +205,14 @@ namespace Cinema.Api.Controllers
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        [Authorize(Roles = "admin")]
+        [HttpGet("motd")]
+        public IActionResult GetMessageOfTheDay()
+        {
+            var message = "Welcome to Cinema! Today's special: 2x1 tickets for admins.";
+            return Ok(new { success = true, message });
         }
     }
 }
