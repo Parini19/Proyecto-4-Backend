@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Microsoft.FeatureManagement;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +26,6 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
-
 // Controllers
 builder.Services.AddControllers();
 
@@ -64,7 +64,7 @@ if (firebaseEnabled)
 // Infraestructura (elige repo en memoria si Firebase:Enabled=false)
 Cinema.Infrastructure.DependencyInjection.AddInfrastructure(builder.Services, builder.Configuration);
 builder.Services.AddScoped<IUserRepository, InMemoryUserRepository>();
-
+builder.Services.AddFeatureManagement();
 
 var app = builder.Build();
 

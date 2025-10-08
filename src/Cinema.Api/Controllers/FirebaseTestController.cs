@@ -12,6 +12,7 @@ using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.FeatureManagement.Mvc;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Cinema.Api.Controllers
@@ -41,6 +42,7 @@ namespace Cinema.Api.Controllers
         }
 
         [HttpGet("test-connection")]
+        [FeatureGate("DatabaseConnection")]
         public async Task<IActionResult> TestConnection()
         {
             try
@@ -125,6 +127,7 @@ namespace Cinema.Api.Controllers
         }
 
         [HttpGet("get-all-users")]
+        [FeatureGate("DatabaseReadAll")]
         public async Task<IActionResult> GetAllUsers()
         {
             try
