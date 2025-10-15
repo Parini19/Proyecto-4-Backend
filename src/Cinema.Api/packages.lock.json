@@ -565,7 +565,10 @@
         }
       },
       "cinema.domain": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Google.Cloud.Firestore": "[3.10.0, )"
+        }
       },
       "cinema.infrastructure": {
         "type": "Project",
