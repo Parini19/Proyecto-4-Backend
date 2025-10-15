@@ -58,7 +58,7 @@ public static class DependencyInjection
             }
 
             services.AddSingleton(sp => new FirestoreDbBuilder { ProjectId = projectId }.Build());
-            services.AddScoped<IMovieRepository, FirestoreMovieRepository>();
+            services.AddScoped<IMovieRepository, FirestoreUserRepository>();
         }
         catch (Exception ex)
         {

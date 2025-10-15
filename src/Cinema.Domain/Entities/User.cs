@@ -1,19 +1,29 @@
+using Google.Cloud.Firestore;
+
 namespace Cinema.Domain.Entities
 {
+    [FirestoreData]
     public class User
     {
+        [FirestoreProperty]
         public string Uid { get; set; }
 
+        [FirestoreProperty]
         public string Email { get; set; }
 
+        [FirestoreProperty]
         public string DisplayName { get; set; }
 
+        [FirestoreProperty]
         public bool EmailVerified { get; set; }
 
+        [FirestoreProperty]
         public bool Disabled { get; set; }
 
-        public string Role { get; set; } // Nueva propiedad para el rol del usuario
+        [FirestoreProperty]
+        public string Role { get; set; }
 
-        public string Password { get; set; } // Nueva propiedad para la contraseña
+        [FirestoreProperty]
+        public string Password { get; set; }
     }
 }

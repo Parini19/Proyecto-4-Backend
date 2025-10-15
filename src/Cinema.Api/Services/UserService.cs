@@ -84,7 +84,7 @@ namespace Cinema.Api.Services
             return user;
         }
 
-        // Obtiene un usuario por UID desde Firebase y su rol desde el almacenamiento
+        
         public async Task<User> GetUserAsync(string uid)
         {
             EnsureFirebaseInitialized();

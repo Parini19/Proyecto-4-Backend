@@ -22,12 +22,12 @@ namespace Cinema.Api.Controllers
     public class FirebaseTestController : ControllerBase
     {
         private readonly string _firebaseConfigPath;
-        private readonly UserService _userService;
+        private readonly FirestoreUserService _firestoreUserService;
 
-        public FirebaseTestController(IConfiguration configuration)
+        public FirebaseTestController(IConfiguration configuration, FirestoreUserService firestoreUserService)
         {
             _firebaseConfigPath = configuration["Firebase:ConfigPath"];
-            _userService = new UserService(configuration);
+            _firestoreUserService = firestoreUserService;
         }
 
         private void EnsureFirebaseInitialized()
@@ -61,8 +61,8 @@ namespace Cinema.Api.Controllers
         {
             try
             {
-                var createdUser = await _userService.CreateUserAsync(user, user.Password);
-                return Ok(new { success = true, uid = createdUser.Uid });
+                await _firestoreUserService.AddUserAsync(user);
+                return Ok(new { success = true, uid = user.Uid });
             }
             catch (System.Exception ex)
             {
@@ -75,18 +75,21 @@ namespace Cinema.Api.Controllers
         {
             try
             {
-                EnsureFirebaseInitialized();
-                var userRecord = await FirebaseAuth.DefaultInstance.GetUserAsync(uid);
+                var user = await _firestoreUserService.GetUserAsync(uid);
+                if (user == null)
+                    return NotFound(new { success = false, message = "User not found." });
+
                 return Ok(new
                 {
                     success = true,
                     user = new
                     {
-                        userRecord.Uid,
-                        userRecord.Email,
-                        userRecord.DisplayName,
-                        userRecord.EmailVerified,
-                        userRecord.Disabled,
+                        user.Uid,
+                        user.Email,
+                        user.DisplayName,
+                        user.EmailVerified,
+                        user.Disabled,
+                        user.Role
                     },
                 });
             }
@@ -101,8 +104,7 @@ namespace Cinema.Api.Controllers
         {
             try
             {
-                EnsureFirebaseInitialized();
-                await FirebaseAuth.DefaultInstance.DeleteUserAsync(uid);
+                await _firestoreUserService.DeleteUserAsync(uid);
                 return Ok(new { success = true, message = $"User {uid} deleted." });
             }
             catch (System.Exception ex)
@@ -117,8 +119,8 @@ namespace Cinema.Api.Controllers
             try
             {
                 user.Uid = uid;
-                var updatedUser = await _userService.UpdateUserAsync(user);
-                return Ok(new { success = true, user = updatedUser });
+                await _firestoreUserService.UpdateUserAsync(user);
+                return Ok(new { success = true, user });
             }
             catch (System.Exception ex)
             {
@@ -132,7 +134,7 @@ namespace Cinema.Api.Controllers
         {
             try
             {
-                var users = await _userService.ListUsersAsync();
+                var users = await _firestoreUserService.GetAllUsersAsync();
                 return Ok(new
                 {
                     success = true,
@@ -156,58 +158,7 @@ namespace Cinema.Api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
-            try
-            {
-                var firebaseToken = await _userService.VerifyUserPasswordAsync(loginDto.Email, loginDto.Password);
-                if (firebaseToken == null)
-                    return Unauthorized(new { success = false, message = "Invalid credentials." });
-
-                var user = await _userService.GetUserByEmailAsync(loginDto.Email);
-                if (user == null)
-                    return Unauthorized(new { success = false, message = "User not found." });
-
-                var jwtToken = GenerateJwtToken(user, HttpContext.RequestServices.GetService<IConfiguration>());
-
-                return Ok(new
-                {
-                    success = true,
-                    uid = user.Uid,
-                    email = user.Email,
-                    displayName = user.DisplayName,
-                    role = user.Role,
-                    firebaseToken,
-                    jwtToken
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = "Login failed.", error = ex.Message });
-            }
-        }
-
-        private string GenerateJwtToken(User user, IConfiguration configuration)
-        {
-            var jwtSettings = configuration.GetSection("Jwt");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Uid),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role ?? "user"),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
-
-            var token = new JwtSecurityToken(
-                issuer: jwtSettings["Issuer"],
-                audience: jwtSettings["Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpiresMinutes"])),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return StatusCode(501, new { success = false, message = "TODO" });
         }
 
         [Authorize(Roles = "admin")]
