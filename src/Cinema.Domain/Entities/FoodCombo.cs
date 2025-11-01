@@ -1,26 +1,24 @@
-﻿using Google.Cloud.Firestore;
+using Google.Cloud.Firestore;
+using System.Collections.Generic;
 
 namespace Cinema.Domain.Entities
 {
     [FirestoreData]
-    public class Movie
+    public class FoodCombo
     {
         [FirestoreProperty]
         public string Id { get; set; }
 
         [FirestoreProperty]
-        public string Title { get; set; }
+        public string Name { get; set; }
 
         [FirestoreProperty]
         public string Description { get; set; }
 
         [FirestoreProperty]
-        public int DurationMinutes { get; set; }
+        public decimal Price { get; set; }
 
         [FirestoreProperty]
-        public string Genre { get; set; }
-
-        [FirestoreProperty]
-        public string Director { get; set; }
+        public List<string> Items { get; set; }
     }
 }

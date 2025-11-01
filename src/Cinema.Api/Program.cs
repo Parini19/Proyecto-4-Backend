@@ -69,7 +69,7 @@ Cinema.Infrastructure.DependencyInjection.AddInfrastructure(builder.Services, bu
 builder.Services.AddScoped<IUserRepository, InMemoryUserRepository>();
 
 //FireStore
-builder.Services.AddSingleton<FirestoreUserService>();
+builder.Services.AddScoped<FirestoreUserService>();
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();

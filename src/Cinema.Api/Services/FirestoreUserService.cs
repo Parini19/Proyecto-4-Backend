@@ -59,5 +59,24 @@ namespace Cinema.Api.Services
             var docRef = _firestoreDb.Collection(CollectionName).Document(uid);
             await docRef.DeleteAsync();
         }
+
+        public async Task<User?> GetUserByEmailAsync(string email)
+        {
+            var query = _firestoreDb.Collection(CollectionName)
+                .WhereEqualTo("Email", email)
+                .Limit(1);
+            var snapshot = await query.GetSnapshotAsync();
+            var doc = snapshot.Documents.FirstOrDefault();
+            return doc?.ConvertTo<User>();
+        }
+
+        public async Task<bool> VerifyUserPasswordAsync(string email, string password)
+        {
+            var user = await GetUserByEmailAsync(email);
+            if (user == null)
+                return false;
+
+            return user.Password == password;
+        }
     }
 }

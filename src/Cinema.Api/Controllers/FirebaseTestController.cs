@@ -158,7 +158,59 @@ namespace Cinema.Api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
-            return StatusCode(501, new { success = false, message = "TODO" });
+            try
+            {
+                // Verify credentials using Firestore
+                var user = await _firestoreUserService.GetUserByEmailAsync(loginDto.Email);
+                if (user == null)
+                    return Unauthorized(new { success = false, message = "User not found." });
+
+                var isValid = await _firestoreUserService.VerifyUserPasswordAsync(loginDto.Email, loginDto.Password);
+                if (!isValid)
+                    return Unauthorized(new { success = false, message = "Invalid credentials." });
+
+                var jwtToken = GenerateJwtToken(user, HttpContext.RequestServices.GetService<IConfiguration>());
+
+                return Ok(new
+                {
+                    success = true,
+                    uid = user.Uid,
+                    email = user.Email,
+                    displayName = user.DisplayName,
+                    role = user.Role,
+                    jwtToken
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Login failed.", error = ex.Message });
+            }
+        }
+
+        // Helper method remains unchanged
+        private string GenerateJwtToken(User user, IConfiguration configuration)
+        {
+            var jwtSettings = configuration.GetSection("Jwt");
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Uid),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "user"),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpiresMinutes"])),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         [Authorize(Roles = "admin")]
