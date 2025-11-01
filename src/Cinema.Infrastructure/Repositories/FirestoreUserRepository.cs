@@ -7,6 +7,7 @@ namespace Cinema.Infrastructure.Repositories
     public class FirestoreUserRepository : IMovieRepository
     {
         private readonly FirestoreDb _db;
+
         public FirestoreUserRepository(FirestoreDb db) => _db = db;
 
         public async Task<IReadOnlyList<Movie>> ListAsync(CancellationToken ct = default)
@@ -21,9 +22,10 @@ namespace Cinema.Infrastructure.Repositories
                 {
                     Id = doc.Id,
                     Title = d.TryGetValue("title", out var t) ? t?.ToString() ?? "" : "",
-                    Year = d.TryGetValue("year", out var y) && int.TryParse(y?.ToString(), out var yy) ? yy : 0
+                    Year = d.TryGetValue("year", out var y) && int.TryParse(y?.ToString(), out var yy) ? yy : 0,
                 });
             }
+
             return list;
         }
     }
