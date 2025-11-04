@@ -1,6 +1,10 @@
+using Cinema.Api.Services;
+using Cinema.Application.Cinema;
+using Cinema.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
+using Microsoft.FeatureManagement;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,7 +27,6 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
-
 // Controllers
 builder.Services.AddControllers();
 
@@ -58,10 +61,15 @@ if (firebaseEnabled)
 
     builder.Services.AddAuthorization();
 }
+//FeatureFlags
+builder.Services.AddFeatureManagement();
 
 // Infraestructura (elige repo en memoria si Firebase:Enabled=false)
 Cinema.Infrastructure.DependencyInjection.AddInfrastructure(builder.Services, builder.Configuration);
+builder.Services.AddScoped<IUserRepository, InMemoryUserRepository>();
 
+//FireStore
+builder.Services.AddScoped<FirestoreUserService>();
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
