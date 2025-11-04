@@ -26,3 +26,12 @@ src/Cinema.Api/appsettings.Development.json
 
 # Claude Code
 .claude/
+
+# VS Code workspace files
+*.code-workspace
+
+# Documentation (optional - uncomment if you don't want to commit docs)
+# docs/
+
+# Windows device files
+nul
