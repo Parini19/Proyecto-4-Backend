@@ -22,5 +22,8 @@ namespace Cinema.Domain.Entities
 
         [FirestoreProperty]
         public string Director { get; set; }
+
+        [FirestoreProperty]
+        public int Year { get; set; }
     }
 }

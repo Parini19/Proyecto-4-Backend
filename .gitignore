@@ -8,5 +8,21 @@ logs/
 *.tmp
 *.dbmdl
 *.log
+
+# Firebase credentials - NEVER commit these!
 src/Cinema.Api/Config/magiacinema-adminsdk.json
+src/Cinema.Api/Config/*.json
+**/magiacinema-adminsdk.json
+
+# Development settings with secrets
 src/Cinema.Api/appsettings.Development.json
+**/appsettings.Development.json
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# Claude Code
+.claude/
