@@ -1,0 +1,32 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "Serilog": {
+    "MinimumLevel": "Information",
+    "WriteTo": [
+      { "Name": "Console" }
+    ]
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "https://localhost:5173",
+      "http://localhost:5173",
+      "http://localhost:5200"
+    ]
+  },
+  "Firebase": {
+    "ConfigPath": "Config/YOUR_FIREBASE_ADMINSDK_FILE.json",
+    "apiKey": "YOUR_FIREBASE_API_KEY_HERE",
+    "ProjectId": "YOUR_FIREBASE_PROJECT_ID"
+  },
+  "Jwt": {
+    "Key": "CHANGE_THIS_TO_A_SECURE_RANDOM_SECRET_KEY_AT_LEAST_32_CHARACTERS_LONG",
+    "Issuer": "CinemaApi",
+    "Audience": "CinemaApiUsers",
+    "ExpiresMinutes": 60
+  }
+}
