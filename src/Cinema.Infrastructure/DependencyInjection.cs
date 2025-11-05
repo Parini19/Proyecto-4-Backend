@@ -1,4 +1,5 @@
 ﻿using Cinema.Application.Movies;
+using Cinema.Application.Screenings;
 using Cinema.Infrastructure.Repositories;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
@@ -17,16 +18,18 @@ public static class DependencyInjection
 
         if (!enabled)
         {
-            Log.Warning("Firebase deshabilitado (Firebase:Enabled=false). Usando InMemoryMovieRepository.");
+            Log.Warning("Firebase deshabilitado (Firebase:Enabled=false). Usando InMemory repositories.");
             services.AddScoped<IMovieRepository, InMemoryMovieRepository>();
+            services.AddScoped<IScreeningRepository, InMemoryScreeningRepository>();
             return services;
         }
 
         var projectId = config["Firebase:ProjectId"];
         if (string.IsNullOrWhiteSpace(projectId))
         {
-            Log.Warning("Firebase:ProjectId vacío. Usando InMemoryMovieRepository.");
+            Log.Warning("Firebase:ProjectId vacío. Usando InMemory repositories.");
             services.AddScoped<IMovieRepository, InMemoryMovieRepository>();
+            services.AddScoped<IScreeningRepository, InMemoryScreeningRepository>();
             return services;
         }
 
@@ -58,12 +61,14 @@ public static class DependencyInjection
             }
 
             services.AddSingleton(sp => new FirestoreDbBuilder { ProjectId = projectId }.Build());
-            services.AddScoped<IMovieRepository, FirestoreUserRepository>();
+            services.AddScoped<IMovieRepository, FirestoreMovieRepository>();
+            services.AddScoped<IScreeningRepository, FirestoreScreeningRepository>();
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error inicializando Firebase/Firestore. Fallback a InMemoryMovieRepository.");
+            Log.Error(ex, "Error inicializando Firebase/Firestore. Fallback a InMemory repositories.");
             services.AddScoped<IMovieRepository, InMemoryMovieRepository>();
+            services.AddScoped<IScreeningRepository, InMemoryScreeningRepository>();
         }
 
         return services;

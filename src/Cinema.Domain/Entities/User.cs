@@ -6,13 +6,13 @@ namespace Cinema.Domain.Entities
     public class User
     {
         [FirestoreProperty]
-        public string Uid { get; set; }
+        public string? Uid { get; set; }  // Nullable - se genera automáticamente si no se proporciona
 
         [FirestoreProperty]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [FirestoreProperty]
-        public string DisplayName { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
 
         [FirestoreProperty]
         public bool EmailVerified { get; set; }
@@ -21,9 +21,9 @@ namespace Cinema.Domain.Entities
         public bool Disabled { get; set; }
 
         [FirestoreProperty]
-        public string Role { get; set; }
+        public string Role { get; set; } = "user";
 
         [FirestoreProperty]
-        public string Password { get; set; }
+        public string Password { get; set; } = string.Empty;
     }
 }

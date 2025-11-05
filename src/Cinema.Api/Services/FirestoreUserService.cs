@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cinema.Domain.Entities;
+using BCrypt.Net;
 
 namespace Cinema.Api.Services
 {
@@ -26,6 +27,13 @@ namespace Cinema.Api.Services
             {
                 user.Uid = Guid.NewGuid().ToString();
             }
+
+            // Hash the password before storing
+            if (!string.IsNullOrEmpty(user.Password))
+            {
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+            }
+
             var docRef = _firestoreDb.Collection(CollectionName).Document(user.Uid);
             await docRef.SetAsync(user);
         }
@@ -50,6 +58,12 @@ namespace Cinema.Api.Services
 
         public async Task UpdateUserAsync(User user)
         {
+            // Hash the password if it's being updated and is not already hashed
+            if (!string.IsNullOrEmpty(user.Password) && !user.Password.StartsWith("$2"))
+            {
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+            }
+
             var docRef = _firestoreDb.Collection(CollectionName).Document(user.Uid);
             await docRef.SetAsync(user, SetOptions.Overwrite);
         }
@@ -76,7 +90,7 @@ namespace Cinema.Api.Services
             if (user == null)
                 return false;
 
-            return user.Password == password;
+            return BCrypt.Net.BCrypt.Verify(password, user.Password);
         }
     }
 }

@@ -38,7 +38,7 @@ builder.Services.AddSwaggerGen();
 // Usa un flag en appsettings: "Firebase": { "Enabled": false }
 var firebaseEnabled = builder.Configuration.GetValue<bool>("Firebase:Enabled");
 
-// Activar Auth/JWT más adelante
+// Activar Auth/JWT mï¿½s adelante
 if (firebaseEnabled)
 {
     var projectId = builder.Configuration["Firebase:ProjectId"]
@@ -84,7 +84,11 @@ if (app.Environment.IsDevelopment())
     app.MapGet("/", () => Results.Redirect("/swagger"));
 }
 
-app.UseHttpsRedirection();
+// Solo usar HTTPS redirect en producciÃ³n para evitar problemas con CORS en desarrollo
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("FlutterClient");
 
@@ -94,12 +98,12 @@ if (firebaseEnabled)
     app.UseAuthorization();
 }
 
-// Middleware de auditoría
+// Middleware de auditorï¿½a
 app.UseMiddleware<Cinema.Api.Utilities.UserActionAuditMiddleware>();
 
 app.MapControllers();
 
-// Health público
+// Health pï¿½blico
 app.MapGet("/health", () => Results.Ok(new { status = "ok", time = DateTime.UtcNow }))
    .AllowAnonymous();
 
