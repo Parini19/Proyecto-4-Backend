@@ -1,4 +1,10 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Cinema.Api.Services;
+using Cinema.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.FeatureManagement.Mvc;
 
 namespace Cinema.Api.Controllers
 {
@@ -6,39 +12,90 @@ namespace Cinema.Api.Controllers
     [Route("api/[controller]")]
     public class FoodOrdersController : ControllerBase
     {
-        [HttpPost("add-food-order")]
-        public IActionResult AddFoodOrder()
+        private readonly FirestoreFoodOrderService _foodOrderService;
+
+        public FoodOrdersController(FirestoreFoodOrderService foodOrderService)
         {
-            // TODO: Implement add food order logic
-            return Ok();
+            _foodOrderService = foodOrderService;
+        }
+
+        [HttpPost("add-food-order")]
+        public async Task<IActionResult> AddFoodOrder([FromBody] FoodOrder order)
+        {
+            try
+            {
+                await _foodOrderService.AddFoodOrderAsync(order);
+                return Ok(new { success = true, id = order.Id });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Failed to add food order.", error = ex.Message });
+            }
         }
 
         [HttpGet("get-food-order/{id}")]
-        public IActionResult GetFoodOrder(string id)
+        public async Task<IActionResult> GetFoodOrder(string id)
         {
-            // TODO: Implement get food order logic
-            return Ok();
+            try
+            {
+                var order = await _foodOrderService.GetFoodOrderAsync(id);
+                if (order == null)
+                    return NotFound(new { success = false, message = "Food order not found." });
+
+                return Ok(new { success = true, order });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Failed to get food order.", error = ex.Message });
+            }
         }
 
         [HttpPut("edit-food-order/{id}")]
-        public IActionResult EditFoodOrder(string id)
+        public async Task<IActionResult> EditFoodOrder(string id, [FromBody] FoodOrder order)
         {
-            // TODO: Implement edit food order logic
-            return Ok();
+            try
+            {
+                order.Id = id;
+                await _foodOrderService.UpdateFoodOrderAsync(order);
+                return Ok(new { success = true, order });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Failed to edit food order.", error = ex.Message });
+            }
         }
 
         [HttpDelete("delete-food-order/{id}")]
-        public IActionResult DeleteFoodOrder(string id)
+        public async Task<IActionResult> DeleteFoodOrder(string id)
         {
-            // TODO: Implement delete food order logic
-            return Ok();
+            try
+            {
+                await _foodOrderService.DeleteFoodOrderAsync(id);
+                return Ok(new { success = true, message = $"Food order {id} deleted." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Failed to delete food order.", error = ex.Message });
+            }
         }
 
         [HttpGet("get-all-food-orders")]
-        public IActionResult GetAllFoodOrders()
+        [FeatureGate("DatabaseReadAll")]
+        public async Task<IActionResult> GetAllFoodOrders()
         {
-            // TODO: Implement get all food orders logic
-            return Ok();
+            try
+            {
+                var orders = await _foodOrderService.GetAllFoodOrdersAsync();
+                return Ok(new
+                {
+                    success = true,
+                    orders
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Failed to get food orders.", error = ex.Message });
+            }
         }
     }
 }

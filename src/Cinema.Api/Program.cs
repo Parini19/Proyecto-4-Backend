@@ -6,6 +6,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.FeatureManagement;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Cinema.Api.Services;
+using Microsoft.FeatureManagement;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,7 +68,17 @@ builder.Services.AddFeatureManagement();
 
 // Infraestructura (elige repo en memoria si Firebase:Enabled=false)
 Cinema.Infrastructure.DependencyInjection.AddInfrastructure(builder.Services, builder.Configuration);
+<<<<<<< Updated upstream
 builder.Services.AddScoped<IUserRepository, InMemoryUserRepository>();
+=======
+builder.Services.AddScoped<FirestoreUserService>();
+builder.Services.AddScoped<FirestoreMovieService>();
+builder.Services.AddScoped<FirestoreScreeningService>();
+builder.Services.AddScoped<FirestoreFoodComboService>();
+builder.Services.AddScoped<FirestoreTheaterRoomService>();
+builder.Services.AddScoped<FirestoreFoodOrderService>();
+builder.Services.AddFeatureManagement();
+>>>>>>> Stashed changes
 
 //FireStore
 builder.Services.AddScoped<FirestoreUserService>();

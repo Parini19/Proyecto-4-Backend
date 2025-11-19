@@ -16,9 +16,18 @@ namespace Cinema.Domain.Entities
         public string Description { get; set; }
 
         [FirestoreProperty]
-        public decimal Price { get; set; }
+        public double Price { get; set; }
 
         [FirestoreProperty]
         public List<string> Items { get; set; }
+
+        [FirestoreProperty]
+        public string ImageUrl { get; set; } = string.Empty;
+
+        [FirestoreProperty]
+        public string Category { get; set; } = string.Empty;
+
+        [FirestoreProperty]
+        public bool IsAvailable { get; set; } = true;
     }
 }
