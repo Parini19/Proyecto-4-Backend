@@ -1,8 +1,6 @@
 ﻿using Google.Cloud.Firestore;
-<<<<<<< Updated upstream
-=======
 using System.Collections.Generic;
->>>>>>> Stashed changes
+
 
 namespace Cinema.Domain.Entities
 {
@@ -10,29 +8,10 @@ namespace Cinema.Domain.Entities
     public class Movie
     {
         [FirestoreProperty]
-<<<<<<< Updated upstream
         public string Id { get; set; }
 
         [FirestoreProperty]
-        public string Title { get; set; }
-
-        [FirestoreProperty]
-        public string Description { get; set; }
-
-        [FirestoreProperty]
-        public int DurationMinutes { get; set; }
-
-        [FirestoreProperty]
-        public string Genre { get; set; }
-
-        [FirestoreProperty]
-        public string Director { get; set; }
-=======
-        public string Id { get; set; } = default!;
-
-        [FirestoreProperty]
         public string Title { get; set; } = default!;
->>>>>>> Stashed changes
 
         [FirestoreProperty]
         public int Year { get; set; }
