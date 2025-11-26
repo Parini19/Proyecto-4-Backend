@@ -81,6 +81,23 @@ builder.Services.AddFeatureManagement();
 //FireStore
 builder.Services.AddScoped<FirestoreUserService>();
 
+// Payment & Billing System - Firestore Services
+builder.Services.AddScoped<FirestoreBookingService>();
+builder.Services.AddScoped<FirestorePaymentService>();
+builder.Services.AddScoped<FirestoreTicketService>();
+builder.Services.AddScoped<FirestoreInvoiceService>();
+
+// Payment & Billing System - Business Services
+builder.Services.AddScoped<QRCodeService>();
+builder.Services.AddScoped<PaymentSimulationService>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<TicketService>();
+builder.Services.AddScoped<InvoiceService>();
+
+// Cloudinary Image Upload Service
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
+builder.Services.AddScoped<CloudinaryImageService>();
+
 var openAiApiKey = builder.Configuration["OpenAI:ApiKey"];
 if (string.IsNullOrEmpty(openAiApiKey))
 {
