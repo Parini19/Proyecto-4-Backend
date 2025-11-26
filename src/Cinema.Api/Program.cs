@@ -6,6 +6,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.FeatureManagement;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Cinema.Api.Services;
+using Microsoft.FeatureManagement;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,9 +69,30 @@ builder.Services.AddFeatureManagement();
 // Infraestructura (elige repo en memoria si Firebase:Enabled=false)
 Cinema.Infrastructure.DependencyInjection.AddInfrastructure(builder.Services, builder.Configuration);
 builder.Services.AddScoped<IUserRepository, InMemoryUserRepository>();
+builder.Services.AddScoped<FirestoreUserService>();
+builder.Services.AddScoped<FirestoreMovieService>();
+builder.Services.AddScoped<FirestoreScreeningService>();
+builder.Services.AddScoped<FirestoreFoodComboService>();
+builder.Services.AddScoped<FirestoreTheaterRoomService>();
+builder.Services.AddScoped<FirestoreFoodOrderService>();
+builder.Services.AddFeatureManagement();
+
 
 //FireStore
 builder.Services.AddScoped<FirestoreUserService>();
+
+var openAiApiKey = builder.Configuration["OpenAI:ApiKey"];
+if (string.IsNullOrEmpty(openAiApiKey))
+{
+    throw new InvalidOperationException("OpenAI:ApiKey is not configured in appsettings.");
+}
+builder.Services.AddHttpClient<OpenAIChatService>((sp, client) =>
+{
+    // Optionally configure HttpClient here
+});
+builder.Services.AddScoped(sp =>
+    new OpenAIChatService(sp.GetRequiredService<HttpClient>(), openAiApiKey));
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();

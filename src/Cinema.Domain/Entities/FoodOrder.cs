@@ -16,7 +16,7 @@ namespace Cinema.Domain.Entities
         public List<string> FoodComboIds { get; set; }
 
         [FirestoreProperty]
-        public decimal TotalPrice { get; set; }
+        public double TotalPrice { get; set; }
 
         [FirestoreProperty]
         public string Status { get; set; }
