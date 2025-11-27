@@ -245,6 +245,43 @@ namespace Cinema.Api.Controllers
                 return StatusCode(500, new { success = false, message = "Failed to get bookings", error = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Obtiene los asientos ocupados para una función específica.
+        /// GET /api/bookings/occupied-seats/{screeningId}
+        /// </summary>
+        [HttpGet("occupied-seats/{screeningId}")]
+        public async Task<IActionResult> GetOccupiedSeats(string screeningId)
+        {
+            try
+            {
+                var allBookings = await _bookingService.GetAllBookingsAsync();
+                
+                // Filter bookings for this screening that are confirmed or pending
+                var screeningBookings = allBookings
+                    .Where(b => b.ScreeningId == screeningId && 
+                               (b.Status == "confirmed" || b.Status == "pending"))
+                    .ToList();
+
+                // Collect all occupied seat numbers
+                var occupiedSeats = screeningBookings
+                    .SelectMany(b => b.SeatNumbers)
+                    .Distinct()
+                    .ToList();
+
+                return Ok(new { 
+                    success = true, 
+                    screeningId = screeningId,
+                    occupiedSeats = occupiedSeats,
+                    count = occupiedSeats.Count 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting occupied seats for screening {screeningId}");
+                return StatusCode(500, new { success = false, message = "Failed to get occupied seats", error = ex.Message });
+            }
+        }
     }
 
     #region DTOs
