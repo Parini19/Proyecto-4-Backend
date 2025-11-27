@@ -47,9 +47,9 @@
 ```json
 {
   "Cloudinary": {
-    "CloudName": "dntcviwyy",
-    "ApiKey": "889753441957871",
-    "ApiSecret": "6uodHCwefoMUwU9aNXmO4Lk7BEw"
+    "CloudName": "",
+    "ApiKey": "",
+    "ApiSecret": ""
   }
 }
 ```

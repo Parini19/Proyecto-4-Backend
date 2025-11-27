@@ -75,6 +75,9 @@ builder.Services.AddScoped<FirestoreScreeningService>();
 builder.Services.AddScoped<FirestoreFoodComboService>();
 builder.Services.AddScoped<FirestoreTheaterRoomService>();
 builder.Services.AddScoped<FirestoreFoodOrderService>();
+builder.Services.AddScoped<FirestoreCinemaLocationService>();
+builder.Services.AddScoped<FirestoreAuditLogService>();
+builder.Services.AddScoped<ReportService>();
 builder.Services.AddFeatureManagement();
 
 
