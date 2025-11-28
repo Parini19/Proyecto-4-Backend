@@ -58,10 +58,88 @@ namespace Cinema.Api.Controllers
         }
 
         [HttpGet("get-all-screenings")]
+        [Obsolete("Use GET /api/screenings/paginated instead. This endpoint loads ALL screenings without limit.")]
         public async Task<IActionResult> GetAllScreenings()
         {
             var screenings = await _firestoreScreeningService.GetAllScreeningsAsync();
-            return Ok(new { success = true, screenings });
+            return Ok(new { success = true, screenings, warning = "DEPRECATED: Use /api/screenings/paginated for better performance" });
+        }
+
+        /// <summary>
+        /// Get screenings with pagination (RECOMMENDED)
+        /// GET /api/screenings/paginated?pageNumber=1&pageSize=50
+        /// </summary>
+        [HttpGet("paginated")]
+        public async Task<IActionResult> GetScreeningsPaginated([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
+        {
+            var result = await _firestoreScreeningService.GetScreeningsPaginatedAsync(pageNumber, pageSize);
+            return Ok(new
+            {
+                success = true,
+                data = result.Items,
+                pagination = new
+                {
+                    result.TotalCount,
+                    result.PageNumber,
+                    result.PageSize,
+                    result.TotalPages,
+                    result.HasPreviousPage,
+                    result.HasNextPage
+                }
+            });
+        }
+
+        /// <summary>
+        /// Get only future screenings (most common use case)
+        /// GET /api/screenings/future?limit=50
+        /// </summary>
+        [HttpGet("future")]
+        public async Task<IActionResult> GetFutureScreenings([FromQuery] int limit = 50)
+        {
+            var screenings = await _firestoreScreeningService.GetFutureScreeningsAsync(limit);
+            return Ok(new
+            {
+                success = true,
+                screenings,
+                count = screenings.Count,
+                limit
+            });
+        }
+
+        /// <summary>
+        /// Get screenings by movie ID with limit
+        /// GET /api/screenings/by-movie/{movieId}?limit=50
+        /// </summary>
+        [HttpGet("by-movie/{movieId}")]
+        public async Task<IActionResult> GetScreeningsByMovie(string movieId, [FromQuery] int limit = 50)
+        {
+            var screenings = await _firestoreScreeningService.GetScreeningsByMovieIdAsync(movieId, limit);
+            return Ok(new
+            {
+                success = true,
+                screenings,
+                count = screenings.Count,
+                movieId,
+                limit
+            });
+        }
+
+        /// <summary>
+        /// Get screenings by cinema ID with limit
+        /// GET /api/screenings/by-cinema/{cinemaId}?limit=50
+        /// </summary>
+        [HttpGet("by-cinema/{cinemaId}")]
+        public async Task<IActionResult> GetScreeningsByCinema(string cinemaId, [FromQuery] int limit = 50)
+        {
+            var screenings = await _firestoreScreeningService.GetScreeningsByCinemaIdAsync(cinemaId, limit);
+            return Ok(new
+            {
+                success = true,
+                screenings,
+                count = screenings.Count,
+                cinemaId,
+                limit
+            });
         }
 
         /// <summary>

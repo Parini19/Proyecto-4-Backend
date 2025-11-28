@@ -112,12 +112,16 @@ namespace Cinema.Api.Controllers
                         booking.ScreeningId,
                         booking.SeatNumbers,
                         booking.TicketQuantity,
+                        booking.TicketPrice,
                         booking.SubtotalTickets,
+                        booking.FoodOrderId,
                         booking.SubtotalFood,
                         booking.Tax,
                         booking.Total,
                         booking.Status,
-                        booking.CreatedAt
+                        booking.CreatedAt,
+                        booking.ConfirmedAt,
+                        booking.PaymentId
                     }
                 });
             }

@@ -1,6 +1,7 @@
 ﻿using Serilog;
 using Cinema.Api.Services;
 using Cinema.Domain.Entities;
+using Microsoft.FeatureManagement;
 
 namespace Cinema.Api.Utilities;
 
@@ -13,7 +14,7 @@ public class UserActionAuditMiddleware
         _next = next;
     }
 
-    public async Task Invoke(HttpContext context, FirestoreAuditLogService auditLogService)
+    public async Task Invoke(HttpContext context, FirestoreAuditLogService auditLogService, IFeatureManager featureManager)
     {
         var userId = context.User?.FindFirst("user_id")?.Value
                      ?? context.User?.FindFirst("uid")?.Value
@@ -35,8 +36,12 @@ public class UserActionAuditMiddleware
             // Log to Serilog
             Log.Information("AUDIT {Method} {Path} {StatusCode} by {UserId} from {IP}", method, path, statusCode, userId, ip);
 
-            // Save to Firestore if it's a write operation (POST, PUT, DELETE) and successful
-            if ((method == "POST" || method == "PUT" || method == "DELETE") &&
+            // Check if audit logging feature is enabled
+            var auditEnabled = await featureManager.IsEnabledAsync("AuditLogging");
+
+            // Save to Firestore if feature is enabled and it's a write operation (POST, PUT, DELETE) and successful
+            if (auditEnabled &&
+                (method == "POST" || method == "PUT" || method == "DELETE") &&
                 statusCode >= 200 && statusCode < 300 &&
                 !path.Contains("/auditlog") && // Avoid logging audit log operations
                 !path.Contains("/seed") && // Skip seed operations
@@ -73,28 +78,32 @@ public class UserActionAuditMiddleware
             var statusCode = context.Response.StatusCode;
             Log.Error(ex, "Unhandled exception for {Method} {Path} {StatusCode} by {UserId}", method, path, statusCode, userId);
 
-            // Log error to audit
-            try
+            // Log error to audit (only if feature is enabled)
+            var auditEnabled = await featureManager.IsEnabledAsync("AuditLogging");
+            if (auditEnabled)
             {
-                var (action, entityType) = DetermineActionAndEntity(method, path);
-                var auditLog = new AuditLog
+                try
                 {
-                    Action = action,
-                    EntityType = entityType,
-                    EntityId = ExtractEntityIdFromPath(path),
-                    UserId = userId,
-                    UserEmail = userEmail,
-                    Description = $"Failed {action} {entityType} via {method} {path}",
-                    Timestamp = DateTime.UtcNow,
-                    IpAddress = ip,
-                    Details = $"Error: {ex.Message}",
-                    Severity = "Error"
-                };
-                await auditLogService.AddAuditLogAsync(auditLog);
-            }
-            catch
-            {
-                // Silently fail if audit logging fails during exception
+                    var (action, entityType) = DetermineActionAndEntity(method, path);
+                    var auditLog = new AuditLog
+                    {
+                        Action = action,
+                        EntityType = entityType,
+                        EntityId = ExtractEntityIdFromPath(path),
+                        UserId = userId,
+                        UserEmail = userEmail,
+                        Description = $"Failed {action} {entityType} via {method} {path}",
+                        Timestamp = DateTime.UtcNow,
+                        IpAddress = ip,
+                        Details = $"Error: {ex.Message}",
+                        Severity = "Error"
+                    };
+                    await auditLogService.AddAuditLogAsync(auditLog);
+                }
+                catch
+                {
+                    // Silently fail if audit logging fails during exception
+                }
             }
 
             throw;
