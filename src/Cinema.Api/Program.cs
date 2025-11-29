@@ -66,6 +66,9 @@ if (firebaseEnabled)
 //FeatureFlags
 builder.Services.AddFeatureManagement();
 
+// Runtime Configuration Service (Singleton for managing runtime settings)
+builder.Services.AddSingleton<RuntimeConfigService>();
+
 // Infraestructura (elige repo en memoria si Firebase:Enabled=false)
 Cinema.Infrastructure.DependencyInjection.AddInfrastructure(builder.Services, builder.Configuration);
 builder.Services.AddScoped<IUserRepository, InMemoryUserRepository>();

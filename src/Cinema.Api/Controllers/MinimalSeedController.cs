@@ -341,5 +341,145 @@ namespace Cinema.Api.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Creates 2 screenings PER MOVIE PER CINEMA for optimal distribution.
+        /// Limits to top N movies to avoid excessive screenings.
+        /// POST /api/minimal-seed/create-optimized-screenings?maxMovies=5
+        /// </summary>
+        [HttpPost("create-optimized-screenings")]
+        public async Task<IActionResult> CreateOptimizedScreenings([FromQuery] int maxMovies = 5)
+        {
+            try
+            {
+                Log.Information("🎯 Starting OPTIMIZED seed: 2 screenings per movie per cinema (max {MaxMovies} movies)", maxMovies);
+
+                var screenings = new List<Screening>();
+                var today = DateTime.UtcNow.Date;
+
+                // Get all required data
+                var allMovies = await _movieService.GetAllMoviesAsync();
+                var allCinemas = await _cinemaLocationService.GetAllCinemaLocationsAsync();
+                var allTheaterRooms = await _theaterRoomService.GetAllTheaterRoomsAsync();
+
+                if (!allMovies.Any() || !allCinemas.Any() || !allTheaterRooms.Any())
+                {
+                    return BadRequest(new { success = false, message = "Missing required data (movies/cinemas/rooms)" });
+                }
+
+                // Filter and limit movies: Top N movies (isNew=true or high rating)
+                var selectedMovies = allMovies
+                    .Where(m => m.IsNew == true || m.Rating >= 7.5)
+                    .OrderByDescending(m => m.IsNew)  // Prioritize "En Cartelera"
+                    .ThenByDescending(m => m.Rating)
+                    .Take(maxMovies)
+                    .ToList();
+
+                if (!selectedMovies.Any())
+                {
+                    selectedMovies = allMovies.OrderByDescending(m => m.Rating).Take(maxMovies).ToList();
+                }
+
+                Log.Information("Selected {Count} top movies for scheduling", selectedMovies.Count);
+
+                // Group theater rooms by cinema
+                var roomsByCinema = allTheaterRooms
+                    .Where(r => !string.IsNullOrEmpty(r.CinemaId))
+                    .GroupBy(r => r.CinemaId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                // 2 showtimes per movie per cinema
+                var showtimes = new[]
+                {
+                    new { hour = 17, minute = 30 },  // 5:30 PM
+                    new { hour = 21, minute = 0 }    // 9:00 PM
+                };
+
+                int screeningCounter = 1;
+
+                // For each cinema, create 2 screenings per movie
+                foreach (var cinema in allCinemas)
+                {
+                    if (!roomsByCinema.ContainsKey(cinema.Id) || !roomsByCinema[cinema.Id].Any())
+                    {
+                        Log.Warning("Cinema {CinemaId} has no rooms, skipping", cinema.Id);
+                        continue;
+                    }
+
+                    var cinemaRooms = roomsByCinema[cinema.Id];
+
+                    // For each movie
+                    foreach (var movie in selectedMovies)
+                    {
+                        // Create 2 screenings (5:30 PM and 9:00 PM)
+                        foreach (var showtime in showtimes)
+                        {
+                            var startTime = today.AddHours(showtime.hour).AddMinutes(showtime.minute);
+                            var endTime = startTime.AddMinutes(120); // 2 hours duration
+
+                            // Select a random room for this cinema
+                            var room = cinemaRooms[Random.Shared.Next(cinemaRooms.Count)];
+
+                            var screening = new Screening
+                            {
+                                Id = $"SCR-OPT-{screeningCounter:D4}",
+                                MovieId = movie.Id,
+                                CinemaId = cinema.Id,
+                                TheaterRoomId = room.Id,
+                                StartTime = startTime,
+                                EndTime = endTime,
+                                Price = 4500.0
+                            };
+
+                            screenings.Add(screening);
+                            await _screeningService.AddScreeningAsync(screening);
+                            screeningCounter++;
+
+                            Log.Information("Created screening {Id} for {MovieTitle} at {CinemaName} ({Time})",
+                                screening.Id, movie.Title, cinema.Name, startTime.ToString("HH:mm"));
+                        }
+                    }
+                }
+
+                var totalScreeningsExpected = allCinemas.Count * selectedMovies.Count * 2;
+
+                Log.Information("✅ OPTIMIZED seed completed: {Count} screenings created ({Movies} movies × {Cinemas} cinemas × 2 showtimes)",
+                    screenings.Count, selectedMovies.Count, allCinemas.Count);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Created {screenings.Count} optimized screenings",
+                    statistics = new
+                    {
+                        totalScreenings = screenings.Count,
+                        expectedScreenings = totalScreeningsExpected,
+                        cinemasCount = allCinemas.Count,
+                        moviesCount = selectedMovies.Count,
+                        screeningsPerMovie = screenings.GroupBy(s => s.MovieId).Select(g => new { movieId = g.Key, count = g.Count() }).ToList(),
+                        screeningsPerCinema = screenings.GroupBy(s => s.CinemaId).Select(g => new { cinemaId = g.Key, count = g.Count() }).ToList(),
+                        date = today.ToString("yyyy-MM-dd")
+                    },
+                    movies = selectedMovies.Select(m => new
+                    {
+                        m.Id,
+                        m.Title,
+                        m.Rating,
+                        m.IsNew,
+                        screeningsCreated = screenings.Count(s => s.MovieId == m.Id)
+                    }).ToList(),
+                    note = $"🎯 OPTIMIZED: 2 screenings per movie per cinema. Limited to top {maxMovies} movies to minimize Firestore reads."
+                });
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error creating optimized screenings");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Error: {ex.Message}"
+                });
+            }
+        }
     }
 }

@@ -1,7 +1,6 @@
-﻿using Serilog;
+using Serilog;
 using Cinema.Api.Services;
 using Cinema.Domain.Entities;
-using Microsoft.FeatureManagement;
 
 namespace Cinema.Api.Utilities;
 
@@ -14,7 +13,7 @@ public class UserActionAuditMiddleware
         _next = next;
     }
 
-    public async Task Invoke(HttpContext context, FirestoreAuditLogService auditLogService, IFeatureManager featureManager)
+    public async Task Invoke(HttpContext context, FirestoreAuditLogService auditLogService, RuntimeConfigService configService)
     {
         var userId = context.User?.FindFirst("user_id")?.Value
                      ?? context.User?.FindFirst("uid")?.Value
@@ -36,8 +35,8 @@ public class UserActionAuditMiddleware
             // Log to Serilog
             Log.Information("AUDIT {Method} {Path} {StatusCode} by {UserId} from {IP}", method, path, statusCode, userId, ip);
 
-            // Check if audit logging feature is enabled
-            var auditEnabled = await featureManager.IsEnabledAsync("AuditLogging");
+            // Check if audit logging is enabled (runtime config)
+            var auditEnabled = configService.IsAuditLoggingEnabled;
 
             // Save to Firestore if feature is enabled and it's a write operation (POST, PUT, DELETE) and successful
             if (auditEnabled &&
@@ -78,8 +77,8 @@ public class UserActionAuditMiddleware
             var statusCode = context.Response.StatusCode;
             Log.Error(ex, "Unhandled exception for {Method} {Path} {StatusCode} by {UserId}", method, path, statusCode, userId);
 
-            // Log error to audit (only if feature is enabled)
-            var auditEnabled = await featureManager.IsEnabledAsync("AuditLogging");
+            // Log error to audit (only if audit logging is enabled)
+            var auditEnabled = configService.IsAuditLoggingEnabled;
             if (auditEnabled)
             {
                 try
