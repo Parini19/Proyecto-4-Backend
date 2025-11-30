@@ -43,12 +43,6 @@ namespace Cinema.Domain.Entities
         public string Phone { get; set; }
 
         /// <summary>
-        /// URL de imagen/logo del cine (opcional)
-        /// </summary>
-        [FirestoreProperty]
-        public string ImageUrl { get; set; }
-
-        /// <summary>
         /// Indica si el cine está activo y aceptando funciones
         /// </summary>
         [FirestoreProperty]

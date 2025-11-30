@@ -223,6 +223,7 @@ namespace Cinema.Api.Services
         public string ExpiryMonth { get; set; } = string.Empty;
         public string ExpiryYear { get; set; } = string.Empty;
         public string Cvv { get; set; } = string.Empty;
+        public string? ConfirmationEmail { get; set; } // Email para enviar confirmaciones (opcional)
     }
 
     /// <summary>

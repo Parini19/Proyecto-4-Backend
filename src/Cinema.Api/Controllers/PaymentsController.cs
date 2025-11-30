@@ -113,8 +113,15 @@ namespace Cinema.Api.Controllers
                     // Generar boletos con QR
                     var tickets = await _ticketService.GenerateTicketsForBookingAsync(booking);
 
-                    // Generar factura
-                    var invoice = await _invoiceService.GenerateInvoiceAsync(booking, payment, movie!.Title);
+                    // Determinar email destino: usar ConfirmationEmail si se proporcionó, si no usar el del usuario
+                    var destinationEmail = !string.IsNullOrWhiteSpace(request.ConfirmationEmail)
+                        ? request.ConfirmationEmail
+                        : user!.Email;
+
+                    // Generar factura (con el email de confirmación si fue proporcionado)
+                    var invoice = await _invoiceService.GenerateInvoiceAsync(booking, payment, movie!.Title, destinationEmail);
+
+                    _logger.LogInformation($"Sending emails to: {destinationEmail} (provided: {request.ConfirmationEmail ?? "none"}, user: {user!.Email})");
 
                     // Enviar emails
                     _ = Task.Run(async () =>
@@ -122,7 +129,7 @@ namespace Cinema.Api.Controllers
                         try
                         {
                             await _emailService.SendBookingConfirmationAsync(
-                                user!.Email,
+                                destinationEmail,
                                 user.DisplayName,
                                 booking,
                                 movie.Title,
@@ -131,19 +138,19 @@ namespace Cinema.Api.Controllers
                             );
 
                             await _emailService.SendTicketsAsync(
-                                user.Email,
+                                destinationEmail,
                                 user.DisplayName,
                                 tickets,
                                 movie.Title
                             );
 
                             await _emailService.SendInvoiceAsync(
-                                user.Email,
+                                destinationEmail,
                                 user.DisplayName,
                                 invoice
                             );
 
-                            _logger.LogInformation($"Emails sent for booking {booking.Id}");
+                            _logger.LogInformation($"Emails sent for booking {booking.Id} to {destinationEmail}");
                         }
                         catch (Exception ex)
                         {
@@ -160,10 +167,17 @@ namespace Cinema.Api.Controllers
                         payment = new
                         {
                             payment.Id,
-                            payment.TransactionId,
-                            payment.Status,
+                            payment.BookingId,
+                            payment.UserId,
                             payment.Amount,
-                            CardInfo = $"{payment.CardBrand} **** {payment.CardLastFourDigits}"
+                            payment.PaymentMethod,
+                            payment.CardLastFourDigits,
+                            payment.CardBrand,
+                            payment.Status,
+                            payment.TransactionId,
+                            RejectionReason = (string?)null,
+                            payment.CreatedAt,
+                            payment.ProcessedAt
                         },
                         booking = new
                         {
@@ -190,8 +204,17 @@ namespace Cinema.Api.Controllers
                         payment = new
                         {
                             payment.Id,
+                            payment.BookingId,
+                            payment.UserId,
+                            payment.Amount,
+                            payment.PaymentMethod,
+                            payment.CardLastFourDigits,
+                            payment.CardBrand,
                             payment.Status,
-                            payment.RejectionReason
+                            TransactionId = (string?)null,
+                            payment.RejectionReason,
+                            payment.CreatedAt,
+                            payment.ProcessedAt
                         }
                     });
                 }

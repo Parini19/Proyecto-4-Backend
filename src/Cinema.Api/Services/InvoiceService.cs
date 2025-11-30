@@ -43,7 +43,11 @@ namespace Cinema.Api.Services
         /// <summary>
         /// Genera una factura para una reserva y pago.
         /// </summary>
-        public async Task<Invoice> GenerateInvoiceAsync(Booking booking, Payment payment, string movieTitle)
+        /// <param name="booking">Reserva</param>
+        /// <param name="payment">Pago</param>
+        /// <param name="movieTitle">Título de la película</param>
+        /// <param name="confirmationEmail">Email de confirmación (opcional, usa el del usuario si no se proporciona)</param>
+        public async Task<Invoice> GenerateInvoiceAsync(Booking booking, Payment payment, string movieTitle, string? confirmationEmail = null)
         {
             _logger.LogInformation($"Generating invoice for booking {booking.Id}");
 
@@ -52,6 +56,11 @@ namespace Cinema.Api.Services
             if (user == null)
                 throw new InvalidOperationException("User not found");
 
+            // Usar email de confirmación si se proporcionó, si no usar el del usuario
+            var invoiceEmail = !string.IsNullOrWhiteSpace(confirmationEmail)
+                ? confirmationEmail
+                : user.Email;
+
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid().ToString(),
@@ -59,7 +68,7 @@ namespace Cinema.Api.Services
                 UserId = booking.UserId,
                 IssuedDate = DateTime.UtcNow,
                 UserName = user.DisplayName,
-                UserEmail = user.Email,
+                UserEmail = invoiceEmail,
                 PaymentMethod = GetPaymentMethodDisplay(payment.PaymentMethod, payment.CardBrand, payment.CardLastFourDigits),
                 Items = new List<InvoiceItem>(),
                 Subtotal = booking.SubtotalTickets + booking.SubtotalFood,
