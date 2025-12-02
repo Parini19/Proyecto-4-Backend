@@ -96,7 +96,13 @@ builder.Services.AddScoped<FirestoreInvoiceService>();
 // Payment & Billing System - Business Services
 builder.Services.AddScoped<QRCodeService>();
 builder.Services.AddScoped<PaymentSimulationService>();
-builder.Services.AddScoped<EmailService>();
+
+// Configure EmailService with HttpClient and timeout
+builder.Services.AddHttpClient<EmailService>((sp, client) =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30); // 30 seconds timeout for email sending
+});
+
 builder.Services.AddScoped<TicketService>();
 builder.Services.AddScoped<InvoiceService>();
 

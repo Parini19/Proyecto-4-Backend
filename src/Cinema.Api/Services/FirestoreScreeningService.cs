@@ -148,5 +148,24 @@ namespace Cinema.Api.Services
 
             return screenings;
         }
+
+        /// <summary>
+        /// Delete ALL screenings (use with caution - for testing/cleanup only)
+        /// </summary>
+        public async Task<int> DeleteAllScreeningsAsync()
+        {
+            var snapshot = await _firestoreDb.Collection(CollectionName).GetSnapshotAsync();
+            var batch = _firestoreDb.StartBatch();
+            int count = 0;
+
+            foreach (var doc in snapshot.Documents)
+            {
+                batch.Delete(doc.Reference);
+                count++;
+            }
+
+            await batch.CommitAsync();
+            return count;
+        }
     }
 }

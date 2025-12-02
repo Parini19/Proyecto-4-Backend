@@ -12,24 +12,152 @@ namespace Cinema.Api.Controllers
         private readonly FirestoreMovieService _firestoreMovieService;
         private readonly FirestoreTheaterRoomService _firestoreTheaterRoomService;
         private readonly FirestoreCinemaLocationService _firestoreCinemaLocationService;
+        private readonly ILogger<ScreeningsController> _logger;
 
         public ScreeningsController(
             FirestoreScreeningService firestoreScreeningService,
             FirestoreMovieService firestoreMovieService,
             FirestoreTheaterRoomService firestoreTheaterRoomService,
-            FirestoreCinemaLocationService firestoreCinemaLocationService)
+            FirestoreCinemaLocationService firestoreCinemaLocationService,
+            ILogger<ScreeningsController> logger)
         {
             _firestoreScreeningService = firestoreScreeningService;
             _firestoreMovieService = firestoreMovieService;
             _firestoreTheaterRoomService = firestoreTheaterRoomService;
             _firestoreCinemaLocationService = firestoreCinemaLocationService;
+            _logger = logger;
         }
 
+        /// <summary>
+        /// Get metadata needed to create a screening (cinemas, rooms, movies)
+        /// GET /api/screenings/creation-data
+        /// </summary>
+        [HttpGet("creation-data")]
+        public async Task<IActionResult> GetCreationData()
+        {
+            try
+            {
+                var cinemas = await _firestoreCinemaLocationService.GetAllCinemaLocationsAsync();
+                var rooms = await _firestoreTheaterRoomService.GetAllTheaterRoomsAsync();
+                var movies = await _firestoreMovieService.GetAllMoviesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    cinemas = cinemas.Select(c => new { c.Id, c.Name, c.Address }).ToList(),
+                    rooms = rooms.Select(r => new { r.Id, r.Name, r.CinemaId, r.Capacity }).ToList(),
+                    movies = movies.Select(m => new { m.Id, m.Title, m.Genre, m.DurationMinutes }).ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting creation data");
+                return StatusCode(500, new { success = false, message = "Error getting creation data", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Create a new screening with validation
+        /// POST /api/screenings/add-screening
+        /// </summary>
         [HttpPost("add-screening")]
         public async Task<IActionResult> AddScreening([FromBody] Screening screening)
         {
-            await _firestoreScreeningService.AddScreeningAsync(screening);
-            return Ok(new { success = true, id = screening.Id });
+            try
+            {
+                // Validations
+                var errors = new List<string>();
+
+                if (string.IsNullOrEmpty(screening.MovieId))
+                    errors.Add("MovieId is required");
+
+                if (string.IsNullOrEmpty(screening.CinemaId))
+                    errors.Add("CinemaId is required");
+
+                if (string.IsNullOrEmpty(screening.TheaterRoomId))
+                    errors.Add("TheaterRoomId is required");
+
+                if (screening.StartTime == default || screening.StartTime < DateTime.UtcNow)
+                    errors.Add("StartTime must be in the future");
+
+                if (screening.EndTime == default || screening.EndTime <= screening.StartTime)
+                    errors.Add("EndTime must be after StartTime");
+
+                if (screening.Price <= 0)
+                    errors.Add("Price must be greater than 0");
+
+                if (errors.Any())
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Validation failed",
+                        errors = errors,
+                        receivedData = new
+                        {
+                            screening.MovieId,
+                            screening.CinemaId,
+                            screening.TheaterRoomId,
+                            screening.StartTime,
+                            screening.EndTime,
+                            screening.Price
+                        }
+                    });
+                }
+
+                // Verify entities exist
+                var movie = await _firestoreMovieService.GetMovieAsync(screening.MovieId);
+                if (movie == null)
+                    return NotFound(new { success = false, message = $"Movie with ID '{screening.MovieId}' not found" });
+
+                var cinema = await _firestoreCinemaLocationService.GetCinemaLocationAsync(screening.CinemaId);
+                if (cinema == null)
+                    return NotFound(new { success = false, message = $"Cinema with ID '{screening.CinemaId}' not found" });
+
+                var room = await _firestoreTheaterRoomService.GetTheaterRoomAsync(screening.TheaterRoomId);
+                if (room == null)
+                    return NotFound(new { success = false, message = $"Theater room with ID '{screening.TheaterRoomId}' not found" });
+
+                // Verify room belongs to cinema
+                if (room.CinemaId != screening.CinemaId)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Theater room '{room.Name}' does not belong to cinema '{cinema.Name}'",
+                        roomCinemaId = room.CinemaId,
+                        providedCinemaId = screening.CinemaId
+                    });
+                }
+
+                await _firestoreScreeningService.AddScreeningAsync(screening);
+
+                _logger.LogInformation($"✅ Screening created: {screening.Id} for movie {movie.Title} at {cinema.Name} - {room.Name}");
+
+                return Ok(new
+                {
+                    success = true,
+                    id = screening.Id,
+                    screening = new
+                    {
+                        screening.Id,
+                        screening.MovieId,
+                        MovieTitle = movie.Title,
+                        screening.CinemaId,
+                        CinemaName = cinema.Name,
+                        screening.TheaterRoomId,
+                        RoomName = room.Name,
+                        screening.StartTime,
+                        screening.EndTime,
+                        screening.Price
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating screening");
+                return StatusCode(500, new { success = false, message = "Error creating screening", error = ex.Message });
+            }
         }
 
         [HttpGet("get-screening/{id}")]
@@ -42,19 +170,84 @@ namespace Cinema.Api.Controllers
             return Ok(new { success = true, screening });
         }
 
+        /// <summary>
+        /// Delete a screening with validation
+        /// DELETE /api/screenings/delete-screening/{id}
+        /// </summary>
         [HttpDelete("delete-screening/{id}")]
         public async Task<IActionResult> DeleteScreening(string id)
         {
-            await _firestoreScreeningService.DeleteScreeningAsync(id);
-            return Ok(new { success = true, message = $"Screening {id} deleted." });
+            try
+            {
+                var screening = await _firestoreScreeningService.GetScreeningAsync(id);
+                if (screening == null)
+                    return NotFound(new { success = false, message = $"Screening with ID '{id}' not found" });
+
+                await _firestoreScreeningService.DeleteScreeningAsync(id);
+
+                _logger.LogInformation($"✅ Screening deleted: {id}");
+
+                return Ok(new { success = true, message = $"Screening {id} deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting screening {id}");
+                return StatusCode(500, new { success = false, message = "Error deleting screening", error = ex.Message });
+            }
         }
 
+        /// <summary>
+        /// Update a screening with validation
+        /// PUT /api/screenings/edit-screening/{id}
+        /// </summary>
         [HttpPut("edit-screening/{id}")]
         public async Task<IActionResult> EditScreening(string id, [FromBody] Screening screening)
         {
-            screening.Id = id;
-            await _firestoreScreeningService.UpdateScreeningAsync(screening);
-            return Ok(new { success = true, screening });
+            try
+            {
+                var existing = await _firestoreScreeningService.GetScreeningAsync(id);
+                if (existing == null)
+                    return NotFound(new { success = false, message = $"Screening with ID '{id}' not found" });
+
+                screening.Id = id;
+
+                // Validations
+                var errors = new List<string>();
+
+                if (string.IsNullOrEmpty(screening.MovieId))
+                    errors.Add("MovieId is required");
+
+                if (string.IsNullOrEmpty(screening.CinemaId))
+                    errors.Add("CinemaId is required");
+
+                if (string.IsNullOrEmpty(screening.TheaterRoomId))
+                    errors.Add("TheaterRoomId is required");
+
+                if (screening.StartTime == default)
+                    errors.Add("StartTime is required");
+
+                if (screening.EndTime == default || screening.EndTime <= screening.StartTime)
+                    errors.Add("EndTime must be after StartTime");
+
+                if (screening.Price <= 0)
+                    errors.Add("Price must be greater than 0");
+
+                if (errors.Any())
+                {
+                    return BadRequest(new { success = false, message = "Validation failed", errors });
+                }
+
+                await _firestoreScreeningService.UpdateScreeningAsync(screening);
+
+                _logger.LogInformation($"✅ Screening updated: {id}");
+
+                return Ok(new { success = true, screening });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating screening {id}");
+                return StatusCode(500, new { success = false, message = "Error updating screening", error = ex.Message });
+            }
         }
 
         [HttpGet("get-all-screenings")]
@@ -151,19 +344,12 @@ namespace Cinema.Api.Controllers
         {
             try
             {
-                var existingScreenings = await _firestoreScreeningService.GetAllScreeningsAsync();
-                int deletedCount = 0;
-
-                foreach (var screening in existingScreenings)
-                {
-                    await _firestoreScreeningService.DeleteScreeningAsync(screening.Id);
-                    deletedCount++;
-                }
+                int deletedCount = await _firestoreScreeningService.DeleteAllScreeningsAsync();
 
                 return Ok(new
                 {
                     success = true,
-                    message = $"Deleted {deletedCount} screenings",
+                    message = $"✅ Deleted {deletedCount} screenings using batch operation",
                     count = deletedCount
                 });
             }
@@ -172,7 +358,7 @@ namespace Cinema.Api.Controllers
                 return BadRequest(new
                 {
                     success = false,
-                    message = $"Error deleting screenings: {ex.Message}"
+                    message = $"❌ Error deleting screenings: {ex.Message}"
                 });
             }
         }
@@ -189,11 +375,7 @@ namespace Cinema.Api.Controllers
             // Clear existing screenings if requested
             if (clearExisting)
             {
-                var existingScreenings = await _firestoreScreeningService.GetAllScreeningsAsync();
-                foreach (var screening in existingScreenings)
-                {
-                    await _firestoreScreeningService.DeleteScreeningAsync(screening.Id);
-                }
+                await _firestoreScreeningService.DeleteAllScreeningsAsync();
             }
 
             var screenings = new List<Screening>();

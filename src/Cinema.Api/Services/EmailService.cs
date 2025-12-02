@@ -1,36 +1,44 @@
 using Cinema.Domain.Entities;
-using SendGrid;
-using SendGrid.Helpers.Mail;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Cinema.Api.Services
 {
     /// <summary>
-    /// Servicio para enviar correos electrónicos usando SendGrid.
+    /// Servicio para enviar correos electrónicos usando Resend.
     /// Incluye templates HTML para confirmaciones, boletos y facturas.
     /// </summary>
     public class EmailService
     {
-        private readonly string? _sendGridApiKey;
+        private readonly string? _resendApiKey;
         private readonly string _fromEmail;
         private readonly string _fromName;
         private readonly bool _isConfigured;
         private readonly ILogger<EmailService> _logger;
+        private readonly HttpClient _httpClient;
 
-        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
+        public EmailService(IConfiguration configuration, ILogger<EmailService> logger, HttpClient httpClient)
         {
-            _sendGridApiKey = configuration["SendGrid:ApiKey"];
-            _fromEmail = configuration["SendGrid:FromEmail"] ?? "noreply@magiacinema.com";
-            _fromName = configuration["SendGrid:FromName"] ?? "Magia Cinema";
-            _isConfigured = !string.IsNullOrEmpty(_sendGridApiKey);
+            _resendApiKey = configuration["Resend:ApiKey"];
+            _fromEmail = configuration["Resend:FromEmail"] ?? "onboarding@resend.dev";
+            _fromName = configuration["Resend:FromName"] ?? "Magia Cinema";
+            _isConfigured = !string.IsNullOrEmpty(_resendApiKey);
             _logger = logger;
+            _httpClient = httpClient;
 
-            if (!_isConfigured)
+            if (_isConfigured)
             {
-                _logger.LogWarning("SendGrid API Key is not configured. Emails will be simulated with logs only.");
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_resendApiKey}");
+                _logger.LogInformation("✅ Resend configurado correctamente. Emails listos para enviar.");
+            }
+            else
+            {
+                _logger.LogWarning("⚠️ Resend API Key is not configured. Emails will be simulated with logs only.");
             }
         }
 
@@ -46,14 +54,24 @@ namespace Cinema.Api.Services
         }
 
         /// <summary>
-        /// Envía boletos digitales por email.
+        /// Envía boletos digitales por email con QR codes como attachments inline.
         /// </summary>
         public async Task SendTicketsAsync(string toEmail, string userName, List<Ticket> tickets, string movieTitle)
         {
             var subject = $"Tus Boletos Digitales - {movieTitle}";
-            var htmlContent = GenerateTicketsEmailHtml(userName, tickets, movieTitle);
 
-            await SendEmailAsync(toEmail, subject, htmlContent);
+            // Generar attachments para cada QR code
+            var attachments = tickets.Select((t, index) => new
+            {
+                content = t.QrCode,  // Base64 del QR
+                filename = $"qr-ticket-{index}.png",
+                content_id = $"qr-ticket-{index}",
+                disposition = "inline"
+            }).ToList();
+
+            var htmlContent = GenerateTicketsEmailHtmlWithCid(userName, tickets, movieTitle);
+
+            await SendEmailWithAttachmentsAsync(toEmail, subject, htmlContent, attachments);
         }
 
         /// <summary>
@@ -68,7 +86,7 @@ namespace Cinema.Api.Services
         }
 
         /// <summary>
-        /// Método genérico para enviar emails.
+        /// Método genérico para enviar emails usando Resend.
         /// </summary>
         private async Task SendEmailAsync(string toEmail, string subject, string htmlContent)
         {
@@ -85,24 +103,85 @@ namespace Cinema.Api.Services
 
             try
             {
-                var client = new SendGridClient(_sendGridApiKey);
-                var from = new EmailAddress(_fromEmail, _fromName);
-                var to = new EmailAddress(toEmail);
-                var msg = MailHelper.CreateSingleEmail(from, to, subject, string.Empty, htmlContent);
-                var response = await client.SendEmailAsync(msg);
+                var emailData = new
+                {
+                    from = $"{_fromName} <{_fromEmail}>",
+                    to = new[] { toEmail },
+                    subject = subject,
+                    html = htmlContent
+                };
+
+                var jsonContent = JsonSerializer.Serialize(emailData);
+                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync("https://api.resend.com/emails", httpContent);
+                var responseBody = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation($"Email enviado exitosamente a {toEmail}");
+                    _logger.LogInformation($"✅ Email enviado exitosamente a {toEmail}");
+                    _logger.LogDebug($"Respuesta de Resend: {responseBody}");
                 }
                 else
                 {
-                    _logger.LogError($"Error al enviar email. Status: {response.StatusCode}");
+                    _logger.LogError($"❌ Error al enviar email. Status: {response.StatusCode}. Respuesta: {responseBody}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al enviar email con SendGrid");
+                _logger.LogError(ex, $"❌ Error al enviar email con Resend a {toEmail}");
+                // No lanzamos la excepción para que el envío de email sea tolerante a fallos
+                // El error ya fue registrado en los logs
+            }
+        }
+
+        /// <summary>
+        /// Método para enviar emails con attachments inline usando Resend.
+        /// </summary>
+        private async Task SendEmailWithAttachmentsAsync(string toEmail, string subject, string htmlContent, List<object> attachments)
+        {
+            if (!_isConfigured)
+            {
+                // Modo simulado - solo logs
+                _logger.LogInformation("===== EMAIL SIMULADO CON ATTACHMENTS =====");
+                _logger.LogInformation($"Para: {toEmail}");
+                _logger.LogInformation($"Asunto: {subject}");
+                _logger.LogInformation($"Attachments: {attachments.Count}");
+                _logger.LogInformation("=========================================");
+                return;
+            }
+
+            try
+            {
+                var emailData = new
+                {
+                    from = $"{_fromName} <{_fromEmail}>",
+                    to = new[] { toEmail },
+                    subject = subject,
+                    html = htmlContent,
+                    attachments = attachments
+                };
+
+                var jsonContent = JsonSerializer.Serialize(emailData);
+                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync("https://api.resend.com/emails", httpContent);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation($"✅ Email con attachments enviado exitosamente a {toEmail}");
+                    _logger.LogDebug($"Respuesta de Resend: {responseBody}");
+                }
+                else
+                {
+                    _logger.LogError($"❌ Error al enviar email con attachments. Status: {response.StatusCode}. Respuesta: {responseBody}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"❌ Error al enviar email con attachments a {toEmail}");
+                // No lanzamos la excepción para que el envío de email sea tolerante a fallos
             }
         }
 
@@ -213,6 +292,80 @@ namespace Cinema.Api.Services
                     </div>
                     <div class='qr-container'>
                         <img src='data:image/png;base64,{t.QrCode}' alt='QR Code' style='max-width: 200px; height: auto;' />
+                        <p style='font-size: 12px; color: #666;'>Presenta este código en la entrada</p>
+                    </div>
+                </div>
+            "));
+
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }}
+        .container {{ max-width: 600px; margin: 20px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+        .header {{ background: #e50914; color: white; padding: 30px 20px; text-align: center; }}
+        .header h1 {{ margin: 0; font-size: 28px; }}
+        .content {{ padding: 30px 20px; }}
+        .ticket-card {{ border: 2px solid #e50914; border-radius: 8px; padding: 20px; margin: 20px 0; background: #fff; }}
+        .ticket-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }}
+        .ticket-header h3 {{ margin: 0; color: #e50914; }}
+        .seat-badge {{ background: #e50914; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }}
+        .ticket-details {{ margin: 15px 0; }}
+        .ticket-details p {{ margin: 8px 0; color: #333; }}
+        .qr-container {{ text-align: center; margin: 20px 0; padding: 20px; background: #f9f9f9; border-radius: 5px; }}
+        .footer {{ background: #333; color: white; padding: 20px; text-align: center; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>🎟️ Tus Boletos Digitales</h1>
+        </div>
+        <div class='content'>
+            <h2>Hola {userName},</h2>
+            <p>Aquí están tus boletos digitales para <strong>{movieTitle}</strong>.</p>
+
+            {ticketRows}
+
+            <div style='background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;'>
+                <p style='margin: 0; color: #856404;'><strong>⚠️ Instrucciones Importantes:</strong></p>
+                <ul style='color: #856404; margin: 10px 0;'>
+                    <li>Llega 15 minutos antes de la función</li>
+                    <li>Presenta el código QR en la entrada del cine</li>
+                    <li>Cada QR es válido para UN solo uso</li>
+                    <li>Los boletos expiran 30 minutos después de iniciada la función</li>
+                </ul>
+            </div>
+        </div>
+        <div class='footer'>
+            <p>© 2025 Magia Cinema. Todos los derechos reservados.</p>
+            <p>¡Disfruta la película!</p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        /// <summary>
+        /// Genera HTML para email de boletos usando CID para imágenes inline.
+        /// </summary>
+        private string GenerateTicketsEmailHtmlWithCid(string userName, List<Ticket> tickets, string movieTitle)
+        {
+            var firstTicket = tickets.First();
+            var ticketRows = string.Join("", tickets.Select((t, index) => $@"
+                <div class='ticket-card'>
+                    <div class='ticket-header'>
+                        <h3>{t.MovieTitle}</h3>
+                        <span class='seat-badge'>Asiento {t.SeatNumber}</span>
+                    </div>
+                    <div class='ticket-details'>
+                        <p><strong>Sala:</strong> {t.TheaterRoomName}</p>
+                        <p><strong>Función:</strong> {t.ShowTime:dd/MM/yyyy HH:mm}</p>
+                        <p><strong>Boleto ID:</strong> {t.Id}</p>
+                    </div>
+                    <div class='qr-container'>
+                        <img src='cid:qr-ticket-{index}' alt='QR Code' style='max-width: 200px; height: auto;' />
                         <p style='font-size: 12px; color: #666;'>Presenta este código en la entrada</p>
                     </div>
                 </div>

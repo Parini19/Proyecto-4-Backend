@@ -123,11 +123,12 @@ namespace Cinema.Api.Controllers
 
                     _logger.LogInformation($"Sending emails to: {destinationEmail} (provided: {request.ConfirmationEmail ?? "none"}, user: {user!.Email})");
 
-                    // Enviar emails
+                    // Enviar emails con delays para respetar rate limit de Resend (2 req/seg)
                     _ = Task.Run(async () =>
                     {
                         try
                         {
+                            // Email 1: Confirmación de reserva
                             await _emailService.SendBookingConfirmationAsync(
                                 destinationEmail,
                                 user.DisplayName,
@@ -137,6 +138,10 @@ namespace Cinema.Api.Controllers
                                 screening.StartTime
                             );
 
+                            // Delay de 600ms para respetar rate limit (2 req/seg = 500ms mínimo)
+                            await Task.Delay(600);
+
+                            // Email 2: Boletos con QR
                             await _emailService.SendTicketsAsync(
                                 destinationEmail,
                                 user.DisplayName,
@@ -144,13 +149,17 @@ namespace Cinema.Api.Controllers
                                 movie.Title
                             );
 
+                            // Delay de 600ms para respetar rate limit
+                            await Task.Delay(600);
+
+                            // Email 3: Factura
                             await _emailService.SendInvoiceAsync(
                                 destinationEmail,
                                 user.DisplayName,
                                 invoice
                             );
 
-                            _logger.LogInformation($"Emails sent for booking {booking.Id} to {destinationEmail}");
+                            _logger.LogInformation($"✅ All emails sent successfully for booking {booking.Id} to {destinationEmail}");
                         }
                         catch (Exception ex)
                         {
