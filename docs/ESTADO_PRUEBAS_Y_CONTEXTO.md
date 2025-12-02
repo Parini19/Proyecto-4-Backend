@@ -184,7 +184,7 @@ var destinationEmail = !string.IsNullOrWhiteSpace(request.ConfirmationEmail)
 ```json
 {
   "Resend": {
-    "ApiKey": "re_euitbTkA_773fgBC3wgaq2TuYcZBWfvvX",
+    "ApiKey": "",
     "FromEmail": "onboarding@resend.dev",
     "FromName": "Magia Cinema"
   }
