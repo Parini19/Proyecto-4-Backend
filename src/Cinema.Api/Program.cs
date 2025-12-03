@@ -73,6 +73,7 @@ builder.Services.AddSingleton<RuntimeConfigService>();
 Cinema.Infrastructure.DependencyInjection.AddInfrastructure(builder.Services, builder.Configuration);
 builder.Services.AddScoped<IUserRepository, InMemoryUserRepository>();
 builder.Services.AddScoped<FirestoreUserService>();
+builder.Services.AddScoped<FirestoreClaimTicketService>();
 builder.Services.AddScoped<FirestoreMovieService>();
 builder.Services.AddScoped<FirestoreScreeningService>();
 builder.Services.AddScoped<FirestoreFoodComboService>();
