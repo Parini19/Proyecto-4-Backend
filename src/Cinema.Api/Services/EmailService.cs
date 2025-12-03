@@ -67,7 +67,7 @@ namespace Cinema.Api.Services
                 filename = $"qr-ticket-{index}.png",
                 content_id = $"qr-ticket-{index}",
                 disposition = "inline"
-            }).ToList();
+            }).ToList<object>();
 
             var htmlContent = GenerateTicketsEmailHtmlWithCid(userName, tickets, movieTitle);
 
