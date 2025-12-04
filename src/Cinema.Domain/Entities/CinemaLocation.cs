@@ -4,48 +4,52 @@ using System;
 namespace Cinema.Domain.Entities
 {
     /// <summary>
-    /// Representa una sala de cine dentro de un cine/sede
-    /// Ejemplo: "Sala 1", "Sala VIP", "Sala IMAX"
+    /// Representa un cine/sede física con múltiples salas
+    /// Ejemplo: "Cine Premium San José", "Cine Mall Escazú"
     /// </summary>
     [FirestoreData]
-    public class TheaterRoom
+    public class CinemaLocation
     {
         /// <summary>
-        /// ID único de la sala
+        /// ID único del cine
         /// </summary>
         [FirestoreProperty]
         public string Id { get; set; }
 
         /// <summary>
-        /// ID del cine al que pertenece esta sala
-        /// Relación: TheaterRoom -> CinemaLocation
-        /// </summary>
-        [FirestoreProperty]
-        public string CinemaId { get; set; }
-
-        /// <summary>
-        /// Nombre de la sala
-        /// Ejemplo: "Sala 1", "Sala VIP", "Sala IMAX"
+        /// Nombre del cine/sede
+        /// Ejemplo: "Cine Premium San José"
         /// </summary>
         [FirestoreProperty]
         public string Name { get; set; }
 
         /// <summary>
-        /// Capacidad total de asientos de la sala
-        /// Se calcula automáticamente basado en la configuración de asientos
+        /// Ciudad donde se ubica el cine
+        /// Ejemplo: "San José", "Heredia", "Escazú"
         /// </summary>
         [FirestoreProperty]
-        public int Capacity { get; set; }
+        public string City { get; set; }
 
         /// <summary>
-        /// Configuración de asientos en formato JSON
-        /// Contiene la disposición visual de los asientos (filas, columnas, pasillos, tipos)
+        /// Dirección completa del cine
         /// </summary>
         [FirestoreProperty]
-        public string SeatConfiguration { get; set; }
+        public string Address { get; set; }
 
         /// <summary>
-        /// Fecha de creación de la sala
+        /// Número de teléfono del cine
+        /// </summary>
+        [FirestoreProperty]
+        public string Phone { get; set; }
+
+        /// <summary>
+        /// Indica si el cine está activo y aceptando funciones
+        /// </summary>
+        [FirestoreProperty]
+        public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Fecha de creación del cine
         /// </summary>
         [FirestoreProperty]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

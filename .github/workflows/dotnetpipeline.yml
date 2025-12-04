@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  build-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,5 +31,7 @@ jobs:
       - name: Build (Release)
         run: dotnet build Cinema.sln --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test Cinema.sln --configuration Release --no-build --verbosity normal
+      # Test step removed - no test projects exist in solution
+      # To add tests, create a test project and uncomment:
+      # - name: Test
+      #   run: dotnet test Cinema.sln --configuration Release --no-build --verbosity normal

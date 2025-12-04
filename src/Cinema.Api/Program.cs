@@ -66,20 +66,50 @@ if (firebaseEnabled)
 //FeatureFlags
 builder.Services.AddFeatureManagement();
 
+// Runtime Configuration Service (Singleton for managing runtime settings)
+builder.Services.AddSingleton<RuntimeConfigService>();
+
 // Infraestructura (elige repo en memoria si Firebase:Enabled=false)
 Cinema.Infrastructure.DependencyInjection.AddInfrastructure(builder.Services, builder.Configuration);
 builder.Services.AddScoped<IUserRepository, InMemoryUserRepository>();
 builder.Services.AddScoped<FirestoreUserService>();
+builder.Services.AddScoped<FirestoreClaimTicketService>();
 builder.Services.AddScoped<FirestoreMovieService>();
 builder.Services.AddScoped<FirestoreScreeningService>();
 builder.Services.AddScoped<FirestoreFoodComboService>();
 builder.Services.AddScoped<FirestoreTheaterRoomService>();
 builder.Services.AddScoped<FirestoreFoodOrderService>();
+builder.Services.AddScoped<FirestoreCinemaLocationService>();
+builder.Services.AddScoped<FirestoreAuditLogService>();
+builder.Services.AddScoped<ReportService>();
 builder.Services.AddFeatureManagement();
 
 
 //FireStore
 builder.Services.AddScoped<FirestoreUserService>();
+
+// Payment & Billing System - Firestore Services
+builder.Services.AddScoped<FirestoreBookingService>();
+builder.Services.AddScoped<FirestorePaymentService>();
+builder.Services.AddScoped<FirestoreTicketService>();
+builder.Services.AddScoped<FirestoreInvoiceService>();
+
+// Payment & Billing System - Business Services
+builder.Services.AddScoped<QRCodeService>();
+builder.Services.AddScoped<PaymentSimulationService>();
+
+// Configure EmailService with HttpClient and timeout
+builder.Services.AddHttpClient<EmailService>((sp, client) =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30); // 30 seconds timeout for email sending
+});
+
+builder.Services.AddScoped<TicketService>();
+builder.Services.AddScoped<InvoiceService>();
+
+// Cloudinary Image Upload Service
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
+builder.Services.AddScoped<CloudinaryImageService>();
 
 var openAiApiKey = builder.Configuration["OpenAI:ApiKey"];
 if (string.IsNullOrEmpty(openAiApiKey))
