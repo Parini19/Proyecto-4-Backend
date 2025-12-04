@@ -1,4 +1,5 @@
 using Google.Cloud.Firestore;
+using System;
 using System.Collections.Generic;
 
 namespace Cinema.Domain.Entities
@@ -20,5 +21,21 @@ namespace Cinema.Domain.Entities
 
         [FirestoreProperty]
         public string Status { get; set; }
+
+        private DateTime? _createdAt;
+        [FirestoreProperty]
+        public DateTime? CreatedAt
+        {
+            get => _createdAt;
+            set => _createdAt = value.HasValue ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc) : null;
+        }
+
+        private DateTime? _updatedAt;
+        [FirestoreProperty]
+        public DateTime? UpdatedAt
+        {
+            get => _updatedAt;
+            set => _updatedAt = value.HasValue ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc) : null;
+        }
     }
 }
